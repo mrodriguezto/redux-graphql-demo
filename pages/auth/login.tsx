@@ -1,3 +1,4 @@
+import useLoginMutation from "hooks/useLoginMutation";
 import type { NextPage } from "next";
 import { useState } from "react";
 
@@ -7,6 +8,8 @@ type FormData = {
 };
 
 const LoginPage: NextPage = () => {
+  const [login, {}] = useLoginMutation();
+
   const [loginData, setLoginData] = useState<FormData>({
     email: "",
     password: "",
@@ -19,10 +22,22 @@ const LoginPage: NextPage = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log({ loginData });
+    const { data, errors } = await login({
+      variables: {
+        email: loginData.email,
+        password: loginData.password,
+      },
+    });
+
+    if (errors) alert("Ocurrió un error");
+
+    if (data) {
+      localStorage.setItem("token", data.login.token);
+      alert("Sesión iniciada como: " + data.login.user.name);
+    }
   };
 
   return (

@@ -6,6 +6,10 @@ const sections = [
     title: "News",
   },
   {
+    path: "/news-ssr",
+    title: "News with SSR",
+  },
+  {
     path: "/auth/register",
     title: "Register",
   },

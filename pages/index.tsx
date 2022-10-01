@@ -1,7 +1,35 @@
-import Article from "components/Article";
-import type { NextPage } from "next";
+// Same as NewsSSRPage ("/news-ssr") but with some differences:
+// The request is made on the client (CSF) instead of the server (SSF).
+// This means that the overall performance is lower compared to SSR, but
+// in return we have the flexibility to update the grapqhl cache making
+// mutations thanks to Apollo :)
+
 import { useState } from "react";
-import { IArticle } from "types";
+import type { NextPage } from "next";
+import { gql, useQuery } from "@apollo/client";
+
+import Article from "components/Article";
+import { IFeedRes } from "types";
+import useCreateArticleMutation from "hooks/useCreateArticleMutation";
+import ClientOnly from "components/ClientOnly";
+
+const GET_ARTICLES = gql`
+  query Feed {
+    feed {
+      links {
+        id
+        description
+        url
+        createdAt
+        postedBy {
+          email
+          name
+          id
+        }
+      }
+    }
+  }
+`;
 
 type FormData = {
   description: string;
@@ -9,6 +37,9 @@ type FormData = {
 };
 
 const HomePage: NextPage = () => {
+  const { data, error, loading } = useQuery<IFeedRes>(GET_ARTICLES);
+  const [postArticle] = useCreateArticleMutation();
+
   const [newData, setNewData] = useState<FormData>({
     description: "",
     url: "",
@@ -21,11 +52,32 @@ const HomePage: NextPage = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log({ newData });
+    if (!localStorage.getItem("token")) return alert("Not authenticated");
+
+    const { data, errors } = await postArticle({
+      variables: {
+        description: newData.description,
+        url: newData.url,
+      },
+      refetchQueries: [
+        {
+          query: GET_ARTICLES,
+        },
+        "Feed",
+      ],
+    });
+
+    if (errors) alert("Something went wrong");
+
+    if (data) alert("Added new article");
   };
+
+  if (loading) return <div>Loading...</div>;
+
+  if (error) return <div>Something went wrong :[</div>;
 
   return (
     <div className='w-full h-full container shadow shadow-slate-300 p-4 rounded'>
@@ -75,25 +127,14 @@ const HomePage: NextPage = () => {
           </button>
         </div>
       </form>
-      <div className='w-full py-6'>
-        <Article article={exampleArticle} />
-        <Article article={exampleArticle} />
-      </div>
+
+      <ClientOnly className='w-full py-6'>
+        {data!.feed.links.map((article) => (
+          <Article key={article.id} article={article} />
+        ))}
+      </ClientOnly>
     </div>
   );
-};
-
-const exampleArticle: IArticle = {
-  createdAt: "aaaaaa",
-  description:
-    "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi urna diam, convallis ac euismod quis, elementum eget nibh. Phasellus ultrices lectus eu ante condimentum sodales. Ut faucibus elit non lacus feugiat, at tempus metus scelerisque. Integer feugiat vehicula gravida. Ut elementum odio vitae laoreet imperdiet. In non pellentesque nisi. Ut eu semper justo, non suscipit massa. Etiam efficitur, eros vel iaculis dapibus, massa leo elementum lacus, non iaculis orci libero non ante. Etiam volutpat quam sit amet tristique luctus. Integer egestas vitae quam ut ultrices. Mauris at faucibus massa, ac condimentum odio. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Morbi ultricies felis quis sagittis imperdiet. Morbi non lacus mi. Pellentesque ultricies eleifend efficitur.",
-  id: 0,
-  url: "123456",
-  postedBy: {
-    id: 0,
-    email: "miguel@gmail.com",
-    name: "Miguel",
-  },
 };
 
 export default HomePage;

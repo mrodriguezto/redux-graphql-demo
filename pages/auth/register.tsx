@@ -1,3 +1,4 @@
+import useRegisterMutation from "hooks/useRegisterMutation";
 import type { NextPage } from "next";
 import { useState } from "react";
 
@@ -7,12 +8,16 @@ type FormData = {
   password: string;
 };
 
+const initialFormData = {
+  name: "",
+  email: "",
+  password: "",
+};
+
 const RegisterPage: NextPage = () => {
-  const [registerData, setRegisterData] = useState<FormData>({
-    name: "",
-    email: "",
-    password: "",
-  });
+  const [createUser] = useRegisterMutation();
+
+  const [registerData, setRegisterData] = useState<FormData>(initialFormData);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setRegisterData({
@@ -21,10 +26,18 @@ const RegisterPage: NextPage = () => {
     });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
-    console.log({ registerData });
+    const { data, errors } = await createUser({
+      variables: registerData,
+    });
+
+    if (errors) alert("Something went wrong");
+
+    if (data) alert("Success! Now you can sign in");
+
+    setRegisterData(initialFormData);
   };
 
   return (
@@ -91,7 +104,7 @@ const RegisterPage: NextPage = () => {
               type='submit'
               className='text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-5 py-2.5 mr-2 mb-2 '
             >
-              Login
+              Sign up
             </button>
           </div>
         </div>

@@ -11,3 +11,20 @@ export type IUser = {
   email: string;
   name: string;
 };
+
+export type ILoginData = {
+  token: string;
+  user: {
+    email: string;
+    id: number;
+    name: string;
+  };
+};
+
+export type IFeedRes = {
+  feed: Feed;
+};
+
+export type Feed = {
+  links: IArticle[];
+};
